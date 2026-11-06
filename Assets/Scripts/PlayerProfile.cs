@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 using UnityEngine;
 
 // Local-only player identity + ranking, persisted via PlayerPrefs. There is no server: the

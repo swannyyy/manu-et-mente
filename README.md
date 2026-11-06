@@ -26,12 +26,12 @@ Online play uses Photon PUN. Review the Photon server settings and configure you
 
 ## Licensing and distribution
 
-Except where otherwise noted, the original code, documentation, and artwork in Manu et Mente by [swannyyy](https://github.com/swannyyy) are licensed under [Creative Commons Attribution–NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). See [LICENSE](LICENSE) for the full terms.
+The original code in Manu et Mente by [swannyyy](https://github.com/swannyyy) is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. See [LICENSE](LICENSE) for the full terms. This covers the original C# files in `Assets/Scripts/` and `Assets/Editor/`, and `Assets/Resources/Visuals/BoardFinish.shader`; these files carry MPL-2.0 notices.
 
-You may share and adapt this material for noncommercial purposes with appropriate attribution, a link to the license, and an indication of any changes. Suggested attribution: “Manu et Mente by swannyyy — https://github.com/swannyyy/manu-et-mente — CC BY-NC 4.0.”
+MPL 2.0 permits commercial use. When distributing covered software, the source of MPL-covered files, including modifications, must be made available under MPL 2.0 as required by the license. Separate files may use other licenses.
 
-This license applies only to material the project author has the right to license. Bundled third-party code, fonts, sounds, artwork, and other assets retain their respective licenses and notices, including Photon, TextMesh Pro, and Unity packages; their inclusion here does not relicense them.
+Original non-code material, including artwork and documentation, remains licensed under [Creative Commons Attribution–NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). See [LICENSE-CC-BY-NC-4.0.txt](LICENSE-CC-BY-NC-4.0.txt). Suggested attribution: “Manu et Mente by swannyyy — https://github.com/swannyyy/manu-et-mente — CC BY-NC 4.0.” The noncommercial restriction does not apply to the MPL-covered code.
 
-CC BY-NC 4.0 restricts commercial use and is not an open-source software license.
+These licenses apply only to material the project author has the right to license. Bundled third-party code, fonts, sounds, artwork, and other assets retain their respective licenses and notices, including Photon, TextMesh Pro, and Unity packages; their inclusion here does not relicense them.
 
 This project requires Unity, a proprietary toolchain, and is therefore not currently eligible for the official F-Droid repository.

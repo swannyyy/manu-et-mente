@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 #if UNITY_EDITOR
 using System;
 using System.IO;
