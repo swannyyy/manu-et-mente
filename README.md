@@ -26,6 +26,12 @@ Online play uses Photon PUN. Review the Photon server settings and configure you
 
 ## Licensing and distribution
 
-No project-wide open-source license has been selected. Bundled third-party code and assets retain their respective licenses; their inclusion here does not relicense them.
+Except where otherwise noted, the original code, documentation, and artwork in Manu et Mente by [swannyyy](https://github.com/swannyyy) are licensed under [Creative Commons Attribution–NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). See [LICENSE](LICENSE) for the full terms.
+
+You may share and adapt this material for noncommercial purposes with appropriate attribution, a link to the license, and an indication of any changes. Suggested attribution: “Manu et Mente by swannyyy — https://github.com/swannyyy/manu-et-mente — CC BY-NC 4.0.”
+
+This license applies only to material the project author has the right to license. Bundled third-party code, fonts, sounds, artwork, and other assets retain their respective licenses and notices, including Photon, TextMesh Pro, and Unity packages; their inclusion here does not relicense them.
+
+CC BY-NC 4.0 restricts commercial use and is not an open-source software license.
 
 This project requires Unity, a proprietary toolchain, and is therefore not currently eligible for the official F-Droid repository.
