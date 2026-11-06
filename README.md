@@ -34,4 +34,4 @@ Original non-code material, including artwork and documentation, remains license
 
 These licenses apply only to material the project author has the right to license. Bundled third-party code, fonts, sounds, artwork, and other assets retain their respective licenses and notices, including Photon, TextMesh Pro, and Unity packages; their inclusion here does not relicense them.
 
-This project requires Unity, a proprietary toolchain, and is therefore not currently eligible for the official F-Droid repository.
+
