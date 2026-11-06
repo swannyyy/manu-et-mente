@@ -1,0 +1,16 @@
+# Revised piece concepts
+
+Built-in image generation edits. Mind uses a brain in both sets. In the symbolic set, Apprentice uses a hammer and hex key, and Scholar wears a graduation cap. These are concept sheets, not installed game sprites.
+
+## Geometric brain revision
+
+Edit Image 1, the geometric game piece comparison sheet. Change ONLY the two MIND pieces in the top-middle cell. Replace the orange and green diamond pieces with stylised BRAIN silhouettes. Image 2 is a reference for the recognizable two-hemisphere brain motif with bold dark winding folds, NOT for its circular green token base. Use a simplified geometric interpretation of the brain: two broad mirrored hemispheres, faceted or softly angular lobes, a distinct dark center split and a few thick dark fold marks. The silhouette must clearly read as a brain at small sizes. Orange on the left and emerald green on the right, matching the exact existing saturated team colours and dark outline weight. Do not use a diamond enclosure or circular token base. Keep both brains comparable in overall visual weight to the other pieces.
+Preserve ALL other parts of Image 1 exactly: the HAND shields, TECHNICIAN gears, APPRENTICE rounded triangles, SCHOLAR open books, SAGE four-point stars, all six labels, dark blue-teal background, 3-by-2 layout, spacing, and canvas dimensions. Keep the MIND label. No extra text, no extra symbols. This is a flat 2D design sheet, not a mockup.
+
+## Symbolic correction
+
+Edit Image 1, the symbolic game-piece concept sheet, with exactly THREE changes:
+1. MIND, top middle: replace both eye symbols with clearly recognisable rounded BRAIN silhouettes. Use Image 2 only as reference for the two-hemisphere brain motif with thick dark winding folds. No circular token background. Give each brain two balanced lobed hemispheres, a clear center split and a few bold curved dark folds. Saturated orange on the left, emerald green on the right.
+2. APPRENTICE, bottom left: replace both graduation hats with a bold, compact crossed HAMMER AND HEX KEY emblem. One short-handled hammer with a broad unmistakable hammer head, crossed with a thick L-shaped hex key (Allen wrench). Make the hex key clearly a bent hexagonal tool, not a second hammer, spanner, screwdriver, axe, pickaxe, or a letter. Simple strong tool silhouettes, minimal detail, readable when small. Orange tools on the left, emerald tools on the right, with thick very dark outlines and a dark separation at their crossing. No hat or compass in this cell.
+3. SCHOLAR, bottom middle: replace both drafting compasses with the small COLLEGE GRADUATION CAP design previously used for Apprentice in Image 1: diamond-shaped mortarboard top, compact cap band beneath and one short simple tassel. Orange on the left and emerald on the right. No compass or book in this cell.
+Preserve the HAND gauntlets, TECHNICIAN anvils, SAGE flames, all six exact labels (HAND, MIND, TECHNICIAN, APPRENTICE, SCHOLAR, SAGE), the existing orange/emerald palette, very dark outlines, dark blue-teal background, landscape canvas, spacious three-column two-row layout, and consistent visual weight. Keep the same labels in their current positions. Outer silhouettes are the pieces themselves, no enclosing discs, badges, or identical bases. No additional text. Flat 2D game token design sheet.

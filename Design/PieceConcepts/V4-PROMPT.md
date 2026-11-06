@@ -1,0 +1,9 @@
+# Symbolic concepts version 4
+
+Built-in image generation edit. Hand is a bare open hand; Sage is a flame above an open book. The other approved symbolic designs are preserved. Concept sheet only.
+
+Edit the supplied symbolic game-piece concept sheet. Make exactly TWO changes, each in both orange and green team variants:
+1. HAND (top left): replace the armored gauntlets with a simple BARE OPEN HAND, palm facing the viewer, five clear digits including the thumb, rounded fingertips and a short plain wrist ending directly below the palm. No glove, armor, cuff, wrist bands, bracer, sleeve, shield or gauntlet. A bold clean hand silhouette with minimal interior lines; keep compact proportions and the existing outline thickness.
+2. SAGE (bottom right): replace the standalone flames with a FLAME RISING ABOVE AN OPEN BOOK. A broad symmetrical open-book silhouette at the base, with two simple page wings and a strong central spine, and one stylised flame centered immediately above the book. The flame and book should form one compact coherent emblem, with a small clear gap or short connection that makes both instantly readable. One simple dark teardrop cutout within the flame; no tiny page lines, candle or torch. The combined emblem should have the same overall height and visual weight as neighboring pieces.
+Orange versions on the left and emerald green versions on the right, using the exact existing team colours, flat fills and thick very dark outlines. No enclosing discs or badge backgrounds.
+Preserve everything else in the image: MIND brains, TECHNICIAN anvils, APPRENTICE hammer and hex-key emblems, SCHOLAR graduation hats, all six exact labels (HAND, MIND, TECHNICIAN, APPRENTICE, SCHOLAR, SAGE), the dark blue-teal background, landscape canvas, spacious three-column by two-row arrangement, spacing and consistent graphic style. Do not change other pieces or add text, textures, gradients, glow or decorations.

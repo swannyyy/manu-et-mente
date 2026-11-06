@@ -1,0 +1,6 @@
+# Symbolic concepts version 5
+
+Built-in image generation edit. Technician now uses a drawing compass. This is a concept sheet; game sprites have not yet been replaced.
+
+Edit the supplied symbolic game-piece concept sheet. Change ONLY the two TECHNICIAN pieces in the top-right cell: replace the anvils with a DRAWING COMPASS (drafting compass), the hinged two-legged instrument used to draw circles. A clear round pivot at the top, two thick angled legs opening downward, a broad simple crossbar, and sturdy pointed ends. This is the mathematical drawing tool, not a compass rose, navigation compass or protractor. Use compact bold silhouettes and minimal internal detail so they remain readable as small game pieces. Orange on the left, emerald green on the right, exactly matching the existing saturated team colours and thick very dark outlines. No enclosing discs or token bases. Keep the TECHNICIAN label in its current location.
+Preserve EVERYTHING else: HAND bare open hands, MIND brains, APPRENTICE crossed hammer and hex-key tools, SCHOLAR graduation caps, SAGE flames above open books, all labels, the dark blue-teal background, landscape canvas, spacing, 3-column by 2-row arrangement and flat 2D graphic style. Do not add text, extra tools, gradients, textures or decorations.

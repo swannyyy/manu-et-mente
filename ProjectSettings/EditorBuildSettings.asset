@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 5e06a0c243e1b4113ae9c3468d3a1b67
+  - enabled: 1
+    path: Assets/Scenes/Tutorial.unity
+    guid: b6933a3b4cae34f3f852937d9bfc9725
+  - enabled: 1
+    path: Assets/Scenes/Game.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/GameAI.unity
+    guid: b2c1f463b0e124e7cb2bae0ad63d2573
+  - enabled: 1
+    path: Assets/Scenes/GuidedLearn.unity
+    guid: a06a7011daf04df683466166b3a6b3fb
+  m_configObjects:
+    com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}

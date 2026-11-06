@@ -1,0 +1,27 @@
+fileFormatVersion: 2
+guid: efe07f79d8bd44f4f8e2645d9ad7e66b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - controller: {fileID: 5162912323453683632, guid: 6eb0e5a0ed7bd464296cead285968536, type: 3}
+  - movePlate: {fileID: 1166014312531080381, guid: 4dc4e222355074610949fede9087e585, type: 3}
+  - mind_g: {fileID: 21300000, guid: f2d91e86794164c549a9c6111a902fb2, type: 3}
+  - mind_o: {fileID: 21300000, guid: 6a403d35b675e4d9fa3c54b086a0fc8b, type: 3}
+  - hand_g: {fileID: 21300000, guid: da9164c953d4f4c41863d355e1885c3d, type: 3}
+  - hand_o: {instanceID: 0}
+  - tech_g: {instanceID: 0}
+  - tech_o: {instanceID: 0}
+  - wise_g: {instanceID: 0}
+  - wise_o: {instanceID: 0}
+  - schol_g: {instanceID: 0}
+  - schol_o: {instanceID: 0}
+  - app_g: {instanceID: 0}
+  - app_o: {instanceID: 0}
+  - skill_g: {instanceID: 0}
+  - skill_o: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

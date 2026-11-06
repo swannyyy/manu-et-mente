@@ -1,0 +1,40 @@
+# Unity generated and machine-local files
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/UserSettings/
+/MemoryCaptures/
+/ProfilerCaptures/
+/*_BurstDebugInformation_DoNotShip/
+/ios/
+/MeM_web/
+/Data/
+/GameLogs/
+/.utmp/
+/.claude/
+/.codex/
+/.vscode/
+/.idea/
+.DS_Store
+*.csproj
+*.sln
+*.slnx
+*.user
+*.apk
+*.aab
+*.ipa
+*.unitypackage
+# Credentials and signing material
+.env
+.env.*
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+# Local player preferences
+/Assets/UserChoices.choices
+/Assets/UserChoices.choices.meta
