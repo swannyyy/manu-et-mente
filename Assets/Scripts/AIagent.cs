@@ -26,7 +26,7 @@ public class AIAgent : MonoBehaviour
     public DifficultyLevel difficulty = DifficultyLevel.Medium;
 
     [Header("Think Time (seconds)")]
-    public float easyThinkTimeMin = 1f;
+    public float easyThinkTimeMin = 1.5f;
     public float easyThinkTimeMax = 2.5f;
     public float mediumThinkTimeMin = 0.8f;
     public float mediumThinkTimeMax = 1.8f;
@@ -34,15 +34,15 @@ public class AIAgent : MonoBehaviour
     public float hardThinkTimeMax = 3f;
 
     [Header("Search Depth (plies)")]
-    public int easySearchDepth = 1;
+    public int easySearchDepth = 2;
     public int mediumSearchDepth = 3;
     public int hardSearchDepth = 10;
 
     [Header("Variety")]
     [Tooltip("Easy: chance of playing a random legal move (never when a win is available).")]
-    [Range(0f, 1f)] public float easyRandomMoveChance = 0.25f;
+    [Range(0f, 1f)] public float easyRandomMoveChance = 0.15f;
     [Tooltip("Random jitter (evaluation units) added to root moves so games are not identical.")]
-    public float easyNoise = 45f;
+    public float easyNoise = 30f;
     public float mediumNoise = 10f;
     public float hardNoise = 2f;
 
