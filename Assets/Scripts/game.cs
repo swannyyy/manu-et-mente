@@ -54,6 +54,18 @@ public class game : MonoBehaviour
 
     private MoveInfo lastMove = null;
 
+    // Rotation limit: after MaxConsecutiveRotations rotations in a row (by either player), the next
+    // player must move a piece. If they have no legal piece move, the game is drawn.
+    public const int MaxConsecutiveRotations = 3;
+    private int consecutiveRotations = 0;
+    public int ConsecutiveRotations => consecutiveRotations;
+    public bool RotationsBlocked => consecutiveRotations >= MaxConsecutiveRotations;
+
+    // Every move of the current game as compact codes (ManuAI.MoveCodec), for history and analysis.
+    private readonly List<string> moveCodes = new List<string>();
+    public IReadOnlyList<string> MoveCodes => moveCodes;
+    public GameEntry LastRecordedGame { get; private set; }
+
     // ---- PvC game recording (notation -> dated local text file) ----
     // One token per half-move, in turn order (orange, green, orange, ...). Written to disk in
     // Winner(). Only populated for player-vs-computer games (an AIAgent is present, not training).
@@ -69,6 +81,9 @@ public class game : MonoBehaviour
         // A PvC game has an AIAgent in the scene; PvP scenes do not. Recording is gated on this.
         cachedAI = FindAnyObjectByType<AIAgent>();
         notationLog.Clear();
+        moveCodes.Clear();
+        LastRecordedGame = null;
+        consecutiveRotations = 0;
 
         // Initialize position matrix
         for (int i = 0; i < 7; i++)
@@ -147,6 +162,46 @@ public class game : MonoBehaviour
     
     }
 
+    // Replaces the whole board with an engine position (used by puzzles): pieces, side to move,
+    // last move (en passant) and the rotation streak. The game is not over afterwards.
+    public void LoadPosition(ManuAI.Board b)
+    {
+        for (int r = 1; r <= 7; r++)
+            for (int p = 1; p <= RING_SIZES[r - 1]; p++)
+            {
+                var obj = GetPosition(r, p);
+                if (obj != null) { obj.SetActive(false); Destroy(obj); }
+                SetPositionEmpty(r, p);
+            }
+        foreach (var pl in new[] { orangePlayer, greenPlayer })
+            if (pl != null) foreach (var obj in pl) if (obj != null) { obj.SetActive(false); Destroy(obj); }
+
+        var orange = new List<GameObject>(); var green = new List<GameObject>();
+        for (int c = 0; c < ManuAI.Geo.NumCells; c++)
+        {
+            int code = b.Sq[c];
+            if (code == 0) continue;
+            string type = ManuAI.Pc.Letter(ManuAI.Pc.Type(code));
+            string player = ManuAI.Pc.ColorName(ManuAI.Pc.Color(code));
+            var obj = Create(type + "_" + (player == "orange" ? "o" : "g"), type, ManuAI.Geo.RingOf[c], ManuAI.Geo.PlaceOf[c], player);
+            SetPosition(obj);
+            (player == "orange" ? orange : green).Add(obj);
+        }
+        orangePlayer = orange.ToArray(); greenPlayer = green.ToArray();
+
+        currentPlayer = ManuAI.Pc.ColorName(b.Side);
+        gameOver = false; winner = null; LastVictoryType = VictoryType.None; resultReported = false;
+        lastMove = b.LmColor < 0 ? null : new MoveInfo
+        {
+            player = ManuAI.Pc.ColorName(b.LmColor),
+            pieceType = ManuAI.Pc.Letter(b.LmType),
+            fromRing = ManuAI.Geo.RingOf[b.LmFrom], fromPlace = ManuAI.Geo.PlaceOf[b.LmFrom],
+            toRing = ManuAI.Geo.RingOf[b.LmTo], toPlace = ManuAI.Geo.PlaceOf[b.LmTo]
+        };
+        consecutiveRotations = b.RotStreak;
+        moveCodes.Clear(); notationLog.Clear(); LastRecordedGame = null;
+    }
+
     public void PreparePractice()
     {
         if (GameUX.Instance == null || !GameUX.Instance.Learning) return;
@@ -157,7 +212,7 @@ public class game : MonoBehaviour
             if(obj!=null){obj.SetActive(false);Destroy(obj);}
             SetPositionEmpty(r,p);
         }
-        currentPlayer="orange";gameOver=false;winner=null;lastMove=null;
+        currentPlayer="orange";gameOver=false;winner=null;lastMove=null;consecutiveRotations=0;moveCodes.Clear();
         if(VictoryPanel!=null)VictoryPanel.SetActive(false);
     }
 
@@ -273,6 +328,8 @@ public class game : MonoBehaviour
 
     public void RecordMove(string player, string pieceType, int fromRing, int fromPlace, int toRing, int toPlace)
     {
+        consecutiveRotations = 0; // a piece move breaks any run of rotations
+        moveCodes.Add(ManuAI.MoveCodec.PieceMove(fromRing, fromPlace, toRing, toPlace));
         lastMove = new MoveInfo
         {
             player = player,
@@ -344,7 +401,8 @@ public class game : MonoBehaviour
             // If the loser has no commander left, the game was decided by commander elimination;
             // otherwise the winner reached 2 points in the D ring.
             string loser = winnerPlayer == "orange" ? "green" : "orange";
-            string decidedBy = !PlayerHasCommander(loser) ? "commanders" : "dring";
+            string decidedBy = winnerPlayer == "draw" ? "rotation-limit"
+                             : !PlayerHasCommander(loser) ? "commanders" : "dring";
             string aiSide = cachedAI != null ? cachedAI.GetAIPlayer() : "unknown";
 
             var sb = new System.Text.StringBuilder();
@@ -374,8 +432,8 @@ public class game : MonoBehaviour
     }
 
     // The five ways to win, ordered by the points they award (see VictoryPoints). Used to drive
-    // online ranking; offline games just end. Draw exists for completeness but is never auto-detected
-    // (the game has no stalemate rule) — it's reserved for a future agreed-draw flow.
+    // online ranking; offline games just end. Draw is declared when, after MaxConsecutiveRotations
+    // rotations in a row, the player to move has no legal piece move.
     public enum VictoryType
     {
         None = 0,
@@ -383,7 +441,7 @@ public class game : MonoBehaviour
         HandAndMindInD,         // own Hand AND Mind both in the D ring        +30
         HandPlus3PawnsInD,      // own Hand + 3 pawns in the D ring            +20
         MindPlus3PawnsInD,      // own Mind + 3 pawns in the D ring            +20
-        CommanderPlus4PawnsCc,  // own Hand or Mind in D + 4 pawns in C/c      +10
+        CommanderPlus4PawnsCc,  // own last commander in D + 4 pawns in C/c (only after losing the other) +10
         Draw                    //                                              0
     }
 
@@ -438,6 +496,15 @@ public class game : MonoBehaviour
             return;
         }
 
+        // Rotation limit: the player to move may not rotate, so with no piece move it is a draw.
+        bool learning = GameUX.Instance != null && GameUX.Instance.Learning;
+        if (RotationsBlocked && !learning && !PlayerHasPieceMove(currentPlayer))
+        {
+            Debug.Log($"{currentPlayer} has no piece move after {MaxConsecutiveRotations} rotations in a row: draw.");
+            Draw();
+            return;
+        }
+
         Debug.Log("No winner yet.");
     }
 
@@ -474,7 +541,10 @@ public class game : MonoBehaviour
         if (handInD && mindInD) return VictoryType.HandAndMindInD;                       // +30
         if (handInD && pawnsInD >= 3) return VictoryType.HandPlus3PawnsInD;              // +20
         if (mindInD && pawnsInD >= 3) return VictoryType.MindPlus3PawnsInD;              // +20
-        if ((handInD || mindInD) && pawnsInCc >= 4) return VictoryType.CommanderPlus4PawnsCc; // +10
+        // Comeback win, only for a player who has already lost one of their two commanders: their
+        // remaining commander in D + 4 pawns in C/c.
+        if ((handInD || mindInD) && pawnsInCc >= 4 && CountCommanders(player) == 1)
+            return VictoryType.CommanderPlus4PawnsCc;                                    // +10
         return VictoryType.None;
     }
 public void SetMLTrainingMode(bool training)
@@ -482,6 +552,82 @@ public void SetMLTrainingMode(bool training)
     isMLTraining = training;
 }
 
+
+    // True if `player` has at least one legal piece move (rotations not counted). Uses the real
+    // move-plate generation, then removes the plates immediately so nothing is left on screen.
+    public bool PlayerHasPieceMove(string player)
+    {
+        bool found = false;
+        bool prevLog = Debug.unityLogger.logEnabled;
+        Debug.unityLogger.logEnabled = false; // Chessman logs heavily while generating plates
+        try
+        {
+            for (int ring = 1; ring <= 7 && !found; ring++)
+            {
+                for (int place = 1; place <= RING_SIZES[ring - 1] && !found; place++)
+                {
+                    GameObject obj = GetPosition(ring, place);
+                    if (obj == null) continue;
+                    Chessman cm = obj.GetComponent<Chessman>();
+                    if (cm == null || cm.player != player) continue;
+                    ClearMovePlatesImmediate();
+                    cm.InitiateMovePlates();
+                    found = GameObject.FindGameObjectsWithTag("MovePlate").Length > 0;
+                    ClearMovePlatesImmediate();
+                }
+            }
+        }
+        finally { Debug.unityLogger.logEnabled = prevLog; }
+        return found;
+    }
+
+    private static void ClearMovePlatesImmediate()
+    {
+        foreach (GameObject p in GameObject.FindGameObjectsWithTag("MovePlate"))
+            if (p != null) DestroyImmediate(p);
+    }
+
+    // Ends the game as a draw (0 points online).
+    public void Draw()
+    {
+        gameOver = true;
+        winner = "draw";
+        LastVictoryType = VictoryType.Draw;
+
+        if (ShouldRecord()) WriteGameRecord("draw");
+
+        if (!resultReported && NetworkController.IsOnline && NetworkController.MatchReady
+            && NetworkController.Instance != null)
+        {
+            resultReported = true;
+            NetworkController.Instance.ReportResult("draw", 0);
+        }
+        if (LastRecordedGame == null) LastRecordedGame = GameHistory.RecordFinished(this, "draw");
+
+        if (VictoryPanel != null && VictoryText != null)
+        {
+            VictoryText.text = "Draw\n" + VictoryExplanation(VictoryType.Draw);
+            if (NetworkController.IsOnline && !string.IsNullOrEmpty(NetworkController.LastResultMessage))
+                VictoryText.text += "\n" + NetworkController.LastResultMessage;
+            VictoryText.color = Color.white;
+            StartCoroutine(ShowVictoryAnimation());
+        }
+    }
+
+    // Number of Hand/Mind pieces `player` still has on the board (0..2).
+    public int CountCommanders(string player)
+    {
+        int n = 0;
+        for (int ring = 1; ring <= 7; ring++)
+            for (int place = 1; place <= RING_SIZES[ring - 1]; place++)
+            {
+                GameObject piece = GetPosition(ring, place);
+                if (piece == null) continue;
+                Chessman cm = piece.GetComponent<Chessman>();
+                if (cm != null && cm.player == player && (cm.pieceType == "H" || cm.pieceType == "B")) n++;
+            }
+        return n;
+    }
 
     // Returns true if the player still has at least one Hand (H) or Mind (B) on the board.
     private bool PlayerHasCommander(string player)
@@ -583,7 +729,8 @@ public void SetMLTrainingMode(bool training)
             case VictoryType.HandAndMindInD:return "Hand and Mind reached D";
             case VictoryType.HandPlus3PawnsInD:return "Hand and 3 Pawns reached D";
             case VictoryType.MindPlus3PawnsInD:return "Mind and 3 Pawns reached D";
-            case VictoryType.CommanderPlus4PawnsCc:return "Commander in D and 4 Pawns in C/c";
+            case VictoryType.CommanderPlus4PawnsCc:return "Last commander in D and 4 Pawns in C/c";
+            case VictoryType.Draw:return "No piece could move after " + MaxConsecutiveRotations + " rotations in a row";
             default:return "";
         }
     }
@@ -612,6 +759,8 @@ public void SetMLTrainingMode(bool training)
         resultReported = true;
         NetworkController.Instance.ReportResult(playerWinner, VictoryPoints(victoryType));
     }
+
+    if (LastRecordedGame == null) LastRecordedGame = GameHistory.RecordFinished(this, playerWinner);
 
     // Play victory sound
     SoundManager.Instance?.PlayVictory();
@@ -729,6 +878,13 @@ private IEnumerator ShowVictoryAnimation()
     // Optional: Ring rotation functionality for Scholars and Sage
     public void RotateRing(int ringPair, bool clockwise)
     {
+        if (gameOver) return;
+        if (RotationsBlocked)
+        {
+            Debug.LogWarning($"Rotation refused: {MaxConsecutiveRotations} rotations in a row - a piece must be moved.");
+            GameUX.Instance?.Notify($"{MaxConsecutiveRotations} rotations in a row - you must move a piece.");
+            return;
+        }
         SoundManager.Instance?.PlayRingRotate();
         // ringPair: 1=Aa, 2=Bb, 3=Cc, 4=D
         // Determine which rings to rotate and by how much
@@ -801,6 +957,8 @@ private IEnumerator ShowVictoryAnimation()
         LogRotation(ringPair, clockwise);
         GameUX.Instance?.Rotated(ringPair, clockwise);
 
+        consecutiveRotations++;
+        moveCodes.Add(ManuAI.MoveCodec.Rotation(ringPair, clockwise));
         NextTurn();
     }
 private void RotateRingSprite(GameObject ringSprite, float angle)

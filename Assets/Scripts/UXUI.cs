@@ -69,8 +69,8 @@ public static class UXUI
     {
         var p = Modal(parent,"How to win");
         Label(p,"Win with any one of these combinations:",110,60,26);
-        Label(p,"Hand + Mind in the center D ring\n\nHand or Mind + 3 Pawns in D\n\nHand or Mind in D + 4 Pawns in C/c\n\nCapture both enemy commanders (Hand and Mind)",180,420,28);
-        Label(p,"Tap a piece to see legal moves. Mint rings are moves; segmented coral rings are captures. Scholars and Sages can rotate their ring pair instead of moving.\n\nDiagonal pieces may need an enabler deeper in the board. Select a piece to see its ability.",630,280,26);
+        Label(p,"Hand + Mind in the center D ring\n\nHand or Mind + 3 Pawns in D\n\nOnly after losing one commander: your last commander in D + 4 Pawns in C/c\n\nCapture both enemy commanders (Hand and Mind)",180,420,28);
+        Label(p,"Tap a piece to see legal moves. Mint rings are moves; segmented coral rings are captures. Scholars and Sages can rotate their ring pair instead of moving. After 3 rotations in a row (by either player), the next player must move a piece; if they cannot, the game is a draw.\n\nDiagonal pieces may need an enabler deeper in the board. Select a piece to see its ability.",620,340,25);
         Button(p,"Back",970,()=>{UnityEngine.Object.Destroy(p.gameObject); close?.Invoke();});
     }
 }

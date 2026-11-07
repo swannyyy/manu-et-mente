@@ -10,8 +10,11 @@ using UnityEngine.EventSystems;
 public class GameUX : MonoBehaviour
 {
     public static GameUX Instance {get;private set;}
-    public static bool BlockInput => NetworkController.SessionInterrupted || Instance!=null && (Instance.modal!=null || Instance.animations>0 || Instance.connectionLost);
-    public static bool PauseAI => Instance!=null && (Instance.modal!=null || Instance.animations>0);
+    public static bool BlockInput => NetworkController.SessionInterrupted || Instance!=null && (Instance.modal!=null || Instance.animations>0 || Instance.connectionLost || Instance.Reviewing);
+    public static bool PauseAI => Instance!=null && (Instance.modal!=null || Instance.animations>0 || Instance.Reviewing);
+    // True while the post-game analysis screen is open (board shows replayed positions).
+    public bool Reviewing;
+    public bool ModalOpen => modal!=null;
     public Chessman Selected {get;private set;}
     public game Board {get;private set;}
     public bool Learning => gameObject.scene.name=="GuidedLearn";
@@ -74,6 +77,15 @@ public class GameUX : MonoBehaviour
         if(Learning)gameObject.AddComponent<PlayableLesson>();
         // The legacy overlay is superseded by the persistent status/header here.
         foreach(var overlay in FindObjectsByType<OnlineStatusOverlay>(FindObjectsInactive.Exclude))overlay.gameObject.SetActive(false);
+        if(AnalysisUX.Pending!=null && !Learning)StartCoroutine(OpenPendingAnalysis());
+        else if(PuzzleUX.Requested && !Learning)PuzzleUX.Install(this);
+    }
+    IEnumerator OpenPendingAnalysis()
+    {
+        yield return null; // let game.Start place the pieces first
+        var e=AnalysisUX.Pending;AnalysisUX.Pending=null;
+        resultShown=true;
+        AnalysisUX.Open(e,true);
     }
     void Half(Button button,bool rightSide)
     {
@@ -84,15 +96,17 @@ public class GameUX : MonoBehaviour
     {
         if(Board==null||safe==null)return;
         LayoutBoard();
-        if(Board.IsGameOver() && !Learning && !resultShown){resultShown=true;ShowResult();}
-        bool rotation=Selected!=null && (Selected.pieceType=="S"||Selected.pieceType=="W");
+        if(Board.IsGameOver() && !Learning && !resultShown && !PuzzleUX.Active){resultShown=true;ShowResult();}
+        bool canRotatePiece=Selected!=null && (Selected.pieceType=="S"||Selected.pieceType=="W");
+        bool rotation=canRotatePiece && !Board.RotationsBlocked;
         left.gameObject.SetActive(rotation);right.gameObject.SetActive(rotation);lastAction.gameObject.SetActive(!rotation);
         if(rotation)
         {
             string pair=PairName(Selected.ringNumber);
             left.GetComponentInChildren<Text>().text="↶ "+pair+" · 90°";right.GetComponentInChildren<Text>().text="↷ "+pair+" · 90°";
         }
-        if(Selected!=null){Draw(selectedLine,Selected.transform.position,.09f);selection.text=Ability(Selected);}
+        if(Selected!=null){Draw(selectedLine,Selected.transform.position,.09f);selection.text=Ability(Selected);
+            if(canRotatePiece && Board.RotationsBlocked)selection.text+="\n"+game.MaxConsecutiveRotations+" rotations in a row: move a piece this turn.";}
         else {selectedLine.gameObject.SetActive(false);selection.text="Tap a piece · Mint = move · Coral = capture";}
         if(Time.unscaledTime<notificationUntil)selection.text=notification;
         string current=Board.GetCurrentPlayer();
@@ -107,7 +121,7 @@ public class GameUX : MonoBehaviour
             {observedStatus=NetworkController.StatusMessage;connectionLost=true;ConnectionDialog();}
         }
         if(NetworkController.IsOnline && !NetworkController.MatchReady && !connectionLost && modal==null) WaitingDialog();
-        if(Input.GetKeyDown(KeyCode.Escape) && !connectionLost && !Board.IsGameOver()){if(modal==null)ShowMenu();else CloseModal();}
+        if(Input.GetKeyDown(KeyCode.Escape) && !connectionLost && !Board.IsGameOver() && !Reviewing){if(modal==null)ShowMenu();else CloseModal();}
         Gestures();
     }
     void LayoutBoard()
@@ -206,6 +220,7 @@ public class GameUX : MonoBehaviour
     public void PreviewRotation(bool clockwise)
     {
         if(BlockInput||Selected==null||(Selected.pieceType!="S"&&Selected.pieceType!="W"))return;
+        if(Board.RotationsBlocked){Notify(game.MaxConsecutiveRotations+" rotations in a row: move a piece this turn.");return;}
         var piece=Selected;int pair=(piece.ringNumber+1)/2;
         float radius=new[]{2f,1.5f,1f,.5f}[pair-1];Draw(ringLine,Vector3.zero,radius);
         var p=OpenModal("Rotate "+PairName(piece.ringNumber)+"?");
@@ -237,14 +252,17 @@ public class GameUX : MonoBehaviour
         UXUI.Label(p,Details("orange")+"\n\n"+Details("green"),110,670,26);
         UXUI.Button(p,"Rules",830,()=>UXUI.Rules(p,null));UXUI.Button(p,"Back to game",920,CloseModal);
     }
-    void ShowResult()
+    void ShowResult(){ShowResultScreen();}
+    public void ShowResultScreen()
     {
         if(Board.VictoryPanel!=null)Board.VictoryPanel.SetActive(false);
-        var p=OpenModal(Team(Board.GetWinner())+" wins!");
+        var p=OpenModal(Board.GetWinner()=="draw"?"Draw":Team(Board.GetWinner())+" wins!");
         UXUI.Label(p,game.VictoryExplanation(Board.LastVictoryType),150,160,31);
         if(NetworkController.IsOnline)UXUI.Label(p,NetworkController.LastResultMessage,340,130,26);
-        else UXUI.Button(p,"Play again",530,()=>SceneManager.LoadScene(gameObject.scene.name),true);
-        UXUI.Button(p,"Return to menu",630,Leave);
+        var record=Board.LastRecordedGame;
+        if(record!=null)UXUI.Button(p,"Analyse game",500,()=>AnalysisUX.Open(record,false),true);
+        if(!NetworkController.IsOnline)UXUI.Button(p,"Play again",590,()=>SceneManager.LoadScene(gameObject.scene.name),record==null);
+        UXUI.Button(p,"Return to menu",680,Leave);
     }
     public void ShowMenu()
     {
@@ -283,7 +301,7 @@ public class GameUX : MonoBehaviour
     public string Details(string team)
     {
         var c=Count(team);int enemy=Count(team=="orange"?"green":"orange")[3];
-        return Team(team)+"\nHand + Mind in D: "+c[0]+" / 2\nCommander + 3 Pawns in D: "+Mathf.Min(c[0],1)+" / 1 + "+c[1]+" / 3\nCommander in D + 4 Pawns in C/c: "+Mathf.Min(c[0],1)+" / 1 + "+c[2]+" / 4\nEnemy commanders captured: "+(2-enemy)+" / 2";
+        return Team(team)+"\nHand + Mind in D: "+c[0]+" / 2\nCommander + 3 Pawns in D: "+Mathf.Min(c[0],1)+" / 1 + "+c[1]+" / 3\nAfter losing a commander - last commander in D + 4 Pawns in C/c: "+(Board.CountCommanders(team)==1?Mathf.Min(c[0],1)+" / 1 + "+c[2]+" / 4":"not available")+"\nEnemy commanders captured: "+(2-enemy)+" / 2";
     }
     int[] Count(string team)
     {

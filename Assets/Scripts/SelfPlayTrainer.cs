@@ -1,241 +1,86 @@
 // SPDX-License-Identifier: MPL-2.0
-using System.Collections;
-using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
+using ManuAI;
 
-// Self-play trainer for the minimax AI's evaluation weights.
+// Self-play trainer for the AI's evaluation weights.
 //
-// Drop this on any GameObject in the GameAI (or Game) scene and press Play. It plays many
-// fast AI-vs-AI games using the REAL game rules (via AIAgent + game + Chessman) and uses
-// coevolutionary hill-climbing to learn the AIWeights. The best weight set is written to
-// Application.persistentDataPath/manu_ai_weights.json, which AIAgent loads automatically on
-// future runs. Training plays greedily (depth 1) for speed; at play time those learned
-// weights feed the existing depth-2/4 minimax for full tactical lookahead.
+// Training runs entirely inside ManuEngine/ManuTrainer (pure C#, no GameObjects), on worker
+// threads, so it is thousands of times faster than playing games on the real board. You can run
+// it either from the editor menu (Manu AI > Train AI) or by enabling this component in a scene
+// and entering Play mode. The result is written to Assets/Resources/ManuAIWeights.txt, which
+// AIAgent loads automatically (it overrides the weights baked into ManuWeights.cs).
 public class SelfPlayTrainer : MonoBehaviour
 {
-    [Header("References (auto-found if left empty)")]
-    public game gameController;
-    public AIAgent aiAgent;
-
     [Header("Training Budget")]
-    [Tooltip("Number of generations (each = gamesPerEval games of champion vs challenger).")]
-    public int generations = 300;
-    [Tooltip("Games played per generation. Kept even so colors are balanced.")]
-    public int gamesPerEval = 8;
-    [Tooltip("Ply cap per game; games exceeding this are scored as draws.")]
-    public int maxMovesPerGame = 200;
-    [Tooltip("How much each draw counts against the challenger when deciding promotion. " +
-             "Higher = stronger pressure to evolve weights that win decisively instead of drawing. " +
-             "Keep modest (e.g. 0.25): too high and no challenger can ever overcome draw-heavy " +
-             "positions, stalling training.")]
-    public float drawPenalty = 0.25f;
-
-    [Header("Search / Exploration")]
-    [Tooltip("Std-dev of the multiplicative Gaussian mutation applied to weights each generation.")]
-    public float startSigma = 0.15f;
-    public float minSigma = 0.02f;
-    [Tooltip("Sigma is multiplied by this each generation (annealing toward minSigma).")]
-    public float sigmaAnneal = 0.997f;
-    [Tooltip("Random jitter added to move scores so repeated games diverge.")]
-    public float explorationNoise = 3f;
-    public int randomSeed = 12345;
-
-    [Header("Control")]
+    [Tooltip("Rounds of self-play -> tuning -> gating match.")]
+    public int rounds = 4;
+    [Tooltip("Self-play games per round (more = better tuning data, slower).")]
+    public int selfPlayGamesPerRound = 200;
+    [Tooltip("Games in each round's gating match (new weights vs current best).")]
+    public int gateGames = 100;
+    [Tooltip("Search depth used during training games. 3 is a good balance.")]
+    public int searchDepth = 3;
+    [Tooltip("Start from the current trained weights (true) or from the hand-written prior (false).")]
+    public bool continueFromCurrentWeights = true;
     public bool startOnPlay = true;
 
-    private System.Random rng;
-    private bool isTraining = false;
-    private string lastGameWinner = "draw";
+    private CancellationTokenSource cts;
 
     void Start()
     {
-        if (gameController == null) gameController = FindAnyObjectByType<game>();
-        if (aiAgent == null) aiAgent = FindAnyObjectByType<AIAgent>();
-
-        if (startOnPlay)
-            StartTraining();
+        if (startOnPlay) StartTraining();
     }
 
     [ContextMenu("Start Training")]
     public void StartTraining()
     {
-        if (isTraining) return;
-
-        if (gameController == null || aiAgent == null)
+        if (cts != null) return;
+        cts = new CancellationTokenSource();
+        var settings = new TrainerSettings
         {
-            Debug.LogError("SelfPlayTrainer: could not find a 'game' and/or 'AIAgent' in the scene.");
-            return;
-        }
-
-        StartCoroutine(TrainRoutine());
+            Rounds = rounds,
+            SelfPlayGamesPerRound = selfPlayGamesPerRound,
+            GateGames = gateGames,
+            SelfPlayDepth = searchDepth,
+            GateDepth = searchDepth,
+            Seed = Random.Range(1, int.MaxValue / 2)
+        };
+        double[] start = continueFromCurrentWeights ? AIAgent.LoadWeights() : Eval.PriorWeights();
+        string outPath = System.IO.Path.Combine(Application.dataPath, "Resources", ManuWeights.ResourceName + ".txt");
+        RunInBackground(start, settings, outPath, cts.Token);
     }
 
-    private IEnumerator TrainRoutine()
+    void OnDestroy()
     {
-        isTraining = true;
-        rng = new System.Random(randomSeed);
+        if (cts != null) cts.Cancel();
+    }
 
-        // Let every component's Start() finish (AIAgent caches its 'game' reference there).
-        yield return null;
-
-        // Headless/quiet mode: stop the AI's auto-play, mute audio, and silence the per-move
-        // Debug.Log spam from game/Chessman (it would otherwise dominate runtime).
-        float prevVolume = AudioListener.volume;
-        bool prevLog = Debug.unityLogger.logEnabled;
-        bool prevAiEnabled = aiAgent.isEnabled;
-
-        aiAgent.isEnabled = false;
-        gameController.SetMLTrainingMode(true);
-        AudioListener.volume = 0f;
-        Debug.unityLogger.logEnabled = false;
-
-        Report($"Started: {generations} generations x {gamesPerEval} games = {generations * gamesPerEval} self-play games. Seed {randomSeed}.");
-
-        AIWeights champion = AIWeights.Default();
-        float sigma = startSigma;
-        int promotions = 0;
-
-        for (int gen = 0; gen < generations; gen++)
+    // Shared by this component and the editor menu.
+    public static Task RunInBackground(double[] start, TrainerSettings settings, string outPath, CancellationToken token)
+    {
+        ManuTrainer.Log = msg => Debug.Log("[ManuTrainer] " + msg);
+        Debug.Log($"[ManuTrainer] Training started: {settings.Rounds} rounds x {settings.SelfPlayGamesPerRound} games " +
+                  $"at depth {settings.SelfPlayDepth} on {settings.Threads} threads. Progress is logged here.");
+        return Task.Run(() =>
         {
-            AIWeights challenger = Perturb(champion, sigma);
-
-            int challengerWins = 0, championWins = 0, draws = 0;
-
-            for (int g = 0; g < gamesPerEval; g++)
+            try
             {
-                bool challengerIsOrange = (g % 2 == 0); // alternate colors for fairness
-                AIWeights wOrange = challengerIsOrange ? challenger : champion;
-                AIWeights wGreen = challengerIsOrange ? champion : challenger;
-
-                yield return StartCoroutine(PlayGame(wOrange, wGreen));
-
-                if (lastGameWinner == "draw")
-                {
-                    draws++;
-                }
-                else
-                {
-                    bool challengerWon = (lastGameWinner == "orange") == challengerIsOrange;
-                    if (challengerWon) challengerWins++;
-                    else championWins++;
-                }
+                double[] w = ManuTrainer.Train(start, settings, token);
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(outPath));
+                System.IO.File.WriteAllText(outPath, ManuTrainer.ToText(w));
+                Debug.Log("[ManuTrainer] Done. Weights saved to " + outPath +
+                          " (refresh/reimport Assets so Unity picks the file up).");
             }
-
-            // Promote the challenger only if its decisive record beats the champion AFTER charging
-            // it for draws. Draws are symmetric in a head-to-head game, so penalizing the incumbent
-            // too would cancel out and change nothing; instead we make the challenger bear the cost,
-            // so a draw-prone challenger fails to unseat the champion. Over generations this selects
-            // for weights that convert games into wins rather than settling for draws.
-            float challengerScore = challengerWins - championWins - drawPenalty * draws;
-            if (challengerScore > 0f)
+            catch (System.OperationCanceledException)
             {
-                champion = challenger;
-                promotions++;
+                Debug.Log("[ManuTrainer] Training cancelled.");
             }
-
-            sigma = Mathf.Max(minSigma, sigma * sigmaAnneal);
-
-            if (gen % 5 == 0 || gen == generations - 1)
-                Report($"Gen {gen + 1}/{generations}: challenger W-L-D = {challengerWins}-{championWins}-{draws}, sigma {sigma:F3}, total promotions {promotions}");
-
-            yield return null; // keep the editor responsive between generations
-        }
-
-        SaveWeights(champion);
-        aiAgent.SetWeights(champion); // apply immediately for this session too
-
-        // Restore normal play state.
-        AudioListener.volume = prevVolume;
-        Debug.unityLogger.logEnabled = prevLog;
-        gameController.SetMLTrainingMode(false);
-        aiAgent.isEnabled = prevAiEnabled;
-        isTraining = false;
-
-        Report($"Done. {promotions} promotions over {generations} generations. Trained weights saved and applied.");
-    }
-
-    // Plays one greedy (depth-1) game and stores the result in lastGameWinner ("orange"/"green"/"draw").
-    private IEnumerator PlayGame(AIWeights wOrange, AIWeights wGreen)
-    {
-        // Reset the board. game.Restart() early-returns while in training mode, so toggle it off
-        // for the reset call only, then back on to keep rotation animations/sounds suppressed.
-        gameController.SetMLTrainingMode(false);
-        gameController.Restart();
-        gameController.SetMLTrainingMode(true);
-
-        lastGameWinner = "draw";
-
-        for (int move = 0; move < maxMovesPerGame; move++)
-        {
-            if (gameController.IsGameOver())
+            catch (System.Exception e)
             {
-                lastGameWinner = gameController.GetWinner() ?? "draw";
-                yield break;
+                Debug.LogError("[ManuTrainer] Training failed: " + e);
             }
-
-            string player = gameController.GetCurrentPlayer();
-            AIWeights w = (player == "orange") ? wOrange : wGreen;
-
-            AIMove chosen = aiAgent.PickGreedyMove(player, w, explorationNoise, rng);
-            if (chosen == null)
-                yield break; // no legal move available -> treat as a draw
-
-            aiAgent.ExecuteMove(chosen);
-
-            if (move % 20 == 0)
-                yield return null; // breathe periodically within long games
-        }
-        // Reached the ply cap with no winner -> draw (lastGameWinner already "draw").
-    }
-
-    // Returns a mutated copy of the weights: each float field scaled by (1 + N(0,1)*sigma), clamped >= 0.
-    private AIWeights Perturb(AIWeights src, float sigma)
-    {
-        AIWeights child = src.Clone();
-        FieldInfo[] fields = typeof(AIWeights).GetFields(BindingFlags.Public | BindingFlags.Instance);
-
-        foreach (FieldInfo f in fields)
-        {
-            if (f.FieldType != typeof(float)) continue;
-
-            float v = (float)f.GetValue(child);
-            float mutated = v * (1f + (float)Gaussian() * sigma);
-            if (mutated < 0f) mutated = 0f;
-            f.SetValue(child, mutated);
-        }
-
-        return child;
-    }
-
-    // Standard normal sample via Box-Muller.
-    private double Gaussian()
-    {
-        double u1 = 1.0 - rng.NextDouble();
-        double u2 = 1.0 - rng.NextDouble();
-        return System.Math.Sqrt(-2.0 * System.Math.Log(u1)) * System.Math.Cos(2.0 * System.Math.PI * u2);
-    }
-
-    private void SaveWeights(AIWeights w)
-    {
-        string json = JsonUtility.ToJson(w, true);
-
-        string path = System.IO.Path.Combine(Application.persistentDataPath, AIAgent.WeightsFileName);
-        System.IO.File.WriteAllText(path, json);
-        Report($"Saved trained weights to: {path}");
-
-        // Refresh the online-learning baseline too, so post-game drift is measured against THIS
-        // fresh training run rather than a stale snapshot.
-        string basePath = System.IO.Path.Combine(Application.persistentDataPath, AIAgent.BaseWeightsFileName);
-        System.IO.File.WriteAllText(basePath, json);
-        Report($"Refreshed learning baseline at: {basePath}");
-    }
-
-    // Logs a status line even while general logging is suppressed during training.
-    private void Report(string msg)
-    {
-        bool prev = Debug.unityLogger.logEnabled;
-        Debug.unityLogger.logEnabled = true;
-        Debug.Log("[SelfPlayTrainer] " + msg);
-        Debug.unityLogger.logEnabled = prev;
+        });
     }
 }

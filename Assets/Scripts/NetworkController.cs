@@ -327,6 +327,7 @@ public class NetworkController : MonoBehaviourPunCallbacks, IOnEventCallback
             {
                 OpponentNickname = r[0] as string ?? "";
                 OpponentPoints = r[1] is int p ? p : 0;
+                GameHistory.SetLastOnlineOpponent(OpponentNickname);
             }
             return;
         }

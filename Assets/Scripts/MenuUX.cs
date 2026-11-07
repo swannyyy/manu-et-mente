@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 
 public class MenuUX : MonoBehaviour
 {
+    // Set when returning from an analysis opened from the statistics page, to reopen that page.
+    public static bool OpenStatsOnLoad;
     RectTransform safe,content,online; Text status; MenuController controller;
     Button create,join,quick,cancel; InputField code,nick; string lastStatus="";
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -32,10 +34,12 @@ public class MenuUX : MonoBehaviour
         UXUI.Button(content,"Play against AI",430,()=>Difficulty(),true);
         UXUI.Button(content,"Two players · Same device",512,()=>controller.StartGame());
         UXUI.Button(content,"Play online",594,()=>Online());
-        UXUI.Button(content,"Learn by playing",676,()=>{NetworkController.GoOffline();SceneManager.LoadScene("GuidedLearn");});
-        UXUI.Button(content,"Rules",758,()=>UXUI.Rules(content,null));
-        UXUI.Button(content,"Sound: "+(AudioListener.volume>0?"On":"Off"),840,ToggleSound);
-        if(!Application.isMobilePlatform)UXUI.Button(content,"Quit",922,()=>controller.QuitGame());
+        UXUI.Button(content,"Learn by playing",676,()=>Learn());
+        UXUI.Button(content,"Statistics & game analysis",758,()=>StatsUX.Show(content));
+        UXUI.Button(content,"Rules",840,()=>UXUI.Rules(content,null));
+        UXUI.Button(content,"Sound: "+(AudioListener.volume>0?"On":"Off"),922,ToggleSound);
+        if(!Application.isMobilePlatform)UXUI.Button(content,"Quit",1004,()=>controller.QuitGame());
+        if(OpenStatsOnLoad){OpenStatsOnLoad=false;StatsUX.Show(content);}
     }
     Sprite FindLogo()
     {
@@ -48,6 +52,16 @@ public class MenuUX : MonoBehaviour
         UXSettings.ToggleSound();
         var b=content.Find("Sound: On")??content.Find("Sound: Off");
         if(b!=null)b.GetComponentInChildren<Text>().text="Sound: "+(AudioListener.volume>0?"On":"Off");
+    }
+    void Learn()
+    {
+        var p=UXUI.Modal(content,"Learn by playing");
+        UXUI.Label(p,"Learn the rules, or sharpen your tactics",130,70);
+        UXUI.Button(p,"Tutorial · Learn the rules step by step",260,()=>{NetworkController.GoOffline();SceneManager.LoadScene("GuidedLearn");},true);
+        UXUI.Button(p,"Puzzles · Find the best move",350,()=>{NetworkController.GoOffline();PuzzleUX.Requested=true;SceneManager.LoadScene("Game");});
+        int solved=PlayerPrefs.GetInt(PuzzleUX.KeySolved,0),tried=PlayerPrefs.GetInt(PuzzleUX.KeyAttempted,0);
+        if(tried>0)UXUI.Label(p,"Puzzles solved first try: "+solved+" / "+tried+" · best streak "+PlayerPrefs.GetInt(PuzzleUX.KeyBest,0),440,60,23);
+        UXUI.Button(p,"Back",600,()=>Destroy(p.gameObject));
     }
     void Difficulty()
     {

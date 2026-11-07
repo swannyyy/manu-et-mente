@@ -93,7 +93,7 @@ public class LearnManager : MonoBehaviour
 
         // Step 2: Goal of the game
         ShowInstruction(
-            "GOAL: Hand + Mind in D; or a commander + 3 Pawns in D; or a commander in D + 4 Pawns in C/c. Capturing both enemy commanders also wins.",
+            "GOAL: Hand + Mind in D; or a commander + 3 Pawns in D; or, only after losing one of your commanders, your last commander in D + 4 Pawns in C/c. Capturing both enemy commanders also wins.",
             "Tutorial (3/12)"
         );
         HideHighlight();
