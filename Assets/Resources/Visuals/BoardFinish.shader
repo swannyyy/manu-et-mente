@@ -38,8 +38,11 @@ Shader "ManuEtMente/BoardFinish"
                 float3 color;
                 if (_Piece > .5)
                 {
+                    // Pastel team colours: the original orange and green, mixed halfway
+                    // towards white (same hues, less saturation), over a gentle dark outline.
                     float3 team = source.r > source.g ? float3(1.0,.36,.025) : float3(.045,.70,.32);
-                    color = lerp(float3(.018,.04,.05), team, smoothstep(.025,.24,light));
+                    team = lerp(team, float3(1,1,1), .5);
+                    color = lerp(float3(.075,.10,.12), team, smoothstep(.025,.24,light));
                     color *= .94 + .10 * i.uv.y;
                 }
                 else

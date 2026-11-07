@@ -31,7 +31,7 @@ raycasts are disabled, and the logo shares the menu panel visibility.
 MenuUX now presents the logo in a responsive screen-space menu with a small
 Manu et Mente caption. GameUX supplies the matching gameplay interface.
 
-Palette refinement: saturated orange/emerald pieces, deep teal and warm cream
+Palette refinement: pastel orange/green pieces (the original hues mixed halfway towards white, see BoardFinish.shader), deep teal and warm cream
 tiles, and stronger gold dividers. The shader decodes its authored sRGB palette
 when using linear rendering, preventing the washed-out appearance. Player-facing
 text calls the P piece Pawn; internal skill_* asset names are retained.
