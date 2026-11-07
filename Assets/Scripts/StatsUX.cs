@@ -82,9 +82,9 @@ public static class StatsUX
                 y = Text(content, "Current: " + cur + " " + kindName + (cur == 1 ? "" : (kindName == "loss" ? "es" : "s")) + " · Best winning streak: " + best, y);
 
                 y = Heading(content, "How you won", y);
-                y = Text(content, Breakdown(rated.Where(g => g.MyResult == "win")), y, 0);
+                y = Text(content, Breakdown(rated.Where(g => g.MyResult == "win"), true), y, 0);
                 y = Heading(content, "How you lost", y);
-                y = Text(content, Breakdown(rated.Where(g => g.MyResult == "loss")), y, 0);
+                y = Text(content, Breakdown(rated.Where(g => g.MyResult == "loss"), false), y, 0);
             }
 
             var analysed = games.Where(g => g.analysed && g.MyAccuracy >= 0).ToList();
@@ -123,19 +123,21 @@ public static class StatsUX
         return list.Count + " game" + (list.Count == 1 ? "" : "s") + " · " + w + " W / " + l + " L / " + d + " D · " + Mathf.RoundToInt(100f * w / list.Count) + "% won";
     }
 
-    static string Breakdown(IEnumerable<GameEntry> list)
+    // won: the list holds wins (a forfeit was the opponent leaving) or losses (the player left).
+    static string Breakdown(IEnumerable<GameEntry> list, bool won)
     {
         var groups = list.GroupBy(g => g.victory).OrderByDescending(g => g.Count()).ToList();
         if (groups.Count == 0) return "–";
-        return string.Join("\n", groups.Select(g => g.Count() + " × " + VictoryName(g.Key)));
+        return string.Join("\n", groups.Select(g => g.Count() + " × " + VictoryName(g.Key, won)));
     }
 
-    public static string VictoryName(string victory)
+    public static string VictoryName(string victory, bool won = true)
     {
         game.VictoryType t;
         if (Enum.TryParse(victory, out t))
         {
             if (t == game.VictoryType.Draw) return "Draw (no piece move after 3 rotations)";
+            if (t == game.VictoryType.Forfeit) return won ? "Opponent left the game" : "You left the game";
             string s = game.VictoryExplanation(t);
             if (!string.IsNullOrEmpty(s)) return s;
         }

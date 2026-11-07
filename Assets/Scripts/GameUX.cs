@@ -257,11 +257,13 @@ public class GameUX : MonoBehaviour
     {
         if(Board.VictoryPanel!=null)Board.VictoryPanel.SetActive(false);
         var p=OpenModal(Board.GetWinner()=="draw"?"Draw":Team(Board.GetWinner())+" wins!");
-        UXUI.Label(p,game.VictoryExplanation(Board.LastVictoryType),150,160,31);
-        if(NetworkController.IsOnline)UXUI.Label(p,NetworkController.LastResultMessage,340,130,26);
+        UXUI.Label(p,Board.ResultExplanation,150,160,31);
         var record=Board.LastRecordedGame;
+        // An opponent who left already took IsOnline down, so ask the saved game what kind it was.
+        bool online=record!=null?record.mode=="online":NetworkController.IsOnline;
+        if(online)UXUI.Label(p,NetworkController.LastResultMessage,340,130,26);
         if(record!=null)UXUI.Button(p,"Analyse game",500,()=>AnalysisUX.Open(record,false),true);
-        if(!NetworkController.IsOnline)UXUI.Button(p,"Play again",590,()=>SceneManager.LoadScene(gameObject.scene.name),record==null);
+        if(!online)UXUI.Button(p,"Play again",590,()=>SceneManager.LoadScene(gameObject.scene.name),record==null);
         UXUI.Button(p,"Return to menu",680,Leave);
     }
     public void ShowMenu()
@@ -275,10 +277,19 @@ public class GameUX : MonoBehaviour
     }
     void ConfirmLeave()
     {
-        var p=OpenModal("Leave this game?");UXUI.Label(p,"This match will end on this device. Your position will not be saved.",150,170,28);
+        var p=OpenModal("Leave this game?");
+        UXUI.Label(p,WillForfeit()?"Leaving now counts as a loss"+(NetworkController.IsOnline?" ("+(-game.ForfeitPoints)+" points).":"."):"This match will end on this device. Your position will not be saved.",150,170,28);
         UXUI.Button(p,"Keep playing",420,CloseModal,true);UXUI.Button(p,"Leave game",520,Leave);
     }
-    public void Leave(){NetworkController.GoOffline();SceneManager.LoadScene("MainMenu");}
+    // Would leaving right now be a forfeit? (A move has been made in a game against the AI or online.)
+    bool WillForfeit()
+    {
+        if(Board==null||Board.IsGameOver()||Learning||PuzzleUX.Active||Board.MoveCodes.Count==0)return false;
+        if(NetworkController.IsOnline)return NetworkController.MatchReady;
+        var ai=FindAnyObjectByType<AIAgent>();return ai!=null&&!ai.aiVsAiTest;
+    }
+    // Every way out of a running game goes through here: walking away from a game in progress is a loss.
+    public void Leave(){if(Board!=null)Board.Forfeit(true);NetworkController.GoOffline();SceneManager.LoadScene("MainMenu");}
     void ConnectionDialog()
     {
         var p=OpenModal("Match interrupted");UXUI.Label(p,NetworkController.StatusMessage+"\n\nThis match cannot continue. Return to the menu to start a new game.",140,220,28);

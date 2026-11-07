@@ -351,6 +351,7 @@ public class AnalysisUX : MonoBehaviour
             }
         }
         if (cursor == ga.PlyCount && ga.Positions[cursor].Winner >= 0) line += "\nGame over";
+        else if (cursor == ga.PlyCount && entry != null && entry.victory == "Forfeit") line += "\nA player left the game here";
         else if (ga.IsDone(cursor) && !ga.Evals[cursor].Best.IsNone && showBest)
             line += "\nEngine suggests: " + Describe(ga.Positions[cursor], ga.Evals[cursor].Best);
         moveText.text = line;

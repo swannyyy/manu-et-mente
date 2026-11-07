@@ -442,8 +442,12 @@ public class game : MonoBehaviour
         HandPlus3PawnsInD,      // own Hand + 3 pawns in the D ring            +20
         MindPlus3PawnsInD,      // own Mind + 3 pawns in the D ring            +20
         CommanderPlus4PawnsCc,  // own last commander in D + 4 pawns in C/c (only after losing the other) +10
-        Draw                    //                                              0
+        Draw,                   //                                              0
+        Forfeit                 // a player left a running game: automatic loss for the leaver   +ForfeitPoints
     }
+
+    // Online points for a game ended by a player leaving (the leaver loses them, the other gains them).
+    public const int ForfeitPoints = 30;
 
     public static int VictoryPoints(VictoryType t)
     {
@@ -454,6 +458,7 @@ public class game : MonoBehaviour
             case VictoryType.HandPlus3PawnsInD:     return 20;
             case VictoryType.MindPlus3PawnsInD:     return 20;
             case VictoryType.CommanderPlus4PawnsCc: return 10;
+            case VictoryType.Forfeit:               return ForfeitPoints;
             default:                                return 0;
         }
     }
@@ -731,8 +736,49 @@ public void SetMLTrainingMode(bool training)
             case VictoryType.MindPlus3PawnsInD:return "Mind and 3 Pawns reached D";
             case VictoryType.CommanderPlus4PawnsCc:return "Last commander in D and 4 Pawns in C/c";
             case VictoryType.Draw:return "No piece could move after " + MaxConsecutiveRotations + " rotations in a row";
+            case VictoryType.Forfeit:return "A player left the game";
             default:return "";
         }
+    }
+
+    // Like VictoryExplanation, but worded for this device's player (for the result screen).
+    public string ResultExplanation =>
+        LastVictoryType == VictoryType.Forfeit ? (ForfeitedByLocal ? "You left the game" : "Your opponent left the game")
+                                               : VictoryExplanation(LastVictoryType);
+
+    // True when the forfeit was this device's player leaving (false: the online opponent left).
+    public bool ForfeitedByLocal { get; private set; }
+
+    // Ends a running game because a player left it: the leaver loses automatically.
+    //   loserIsLocal = true  -> this device's player left (menu "Leave game", app closed, connection lost)
+    //   loserIsLocal = false -> the online opponent left or disconnected
+    // Counts only in games against the AI and in online matches, and only once a move has been made
+    // (leaving an untouched board costs nothing). Returns true if the game was ended this way.
+    public bool Forfeit(bool loserIsLocal)
+    {
+        if (gameOver || isMLTraining || moveCodes.Count == 0) return false;
+        if (GameUX.Instance != null && GameUX.Instance.Learning) return false;
+        if (PuzzleUX.Active) return false;
+
+        string loser;
+        AIAgent ai = cachedAI != null ? cachedAI : FindAnyObjectByType<AIAgent>();
+        if (NetworkController.IsOnline && NetworkController.MatchReady)
+            loser = loserIsLocal ? NetworkController.LocalColor : (NetworkController.LocalColor == "orange" ? "green" : "orange");
+        else if (ai != null && !ai.aiVsAiTest && loserIsLocal)
+            loser = ai.PlayerColor == "orange" ? "green" : "orange"; // the human is the side the AI is not
+        else
+            return false;
+
+        ForfeitedByLocal = loserIsLocal;
+        Debug.Log($"{loser} left the game: forfeit.");
+        Winner(loser == "orange" ? "green" : "orange", VictoryType.Forfeit);
+        return true;
+    }
+
+    // Closing the app counts as leaving (the editor's Stop button does not, so testing stays clean).
+    void OnApplicationQuit()
+    {
+        if (!Application.isEditor) Forfeit(true);
     }
 
     private bool resultReported = false;
@@ -744,7 +790,8 @@ public void SetMLTrainingMode(bool training)
     LastVictoryType = victoryType;
 
     // Record the PvC game in notation: mark the deciding move with '#', then write the dated file.
-    if (ShouldRecord())
+    // (An abandoned game is not a finished game: it gets no '#' and no training log file.)
+    if (ShouldRecord() && victoryType != VictoryType.Forfeit)
     {
         if (notationLog.Count > 0)
             notationLog[notationLog.Count - 1] += "#";
@@ -762,6 +809,9 @@ public void SetMLTrainingMode(bool training)
 
     if (LastRecordedGame == null) LastRecordedGame = GameHistory.RecordFinished(this, playerWinner);
 
+    // The player who walked away gets no victory fanfare or panel: the scene is being left anyway.
+    if (victoryType == VictoryType.Forfeit && ForfeitedByLocal) return;
+
     // Play victory sound
     SoundManager.Instance?.PlayVictory();
 
@@ -771,7 +821,7 @@ public void SetMLTrainingMode(bool training)
     if (VictoryPanel != null && VictoryText != null)
     {
         string winnerColor = playerWinner == "orange" ? "Orange" : "Green";
-        VictoryText.text = winnerColor + " Wins!\n" + VictoryExplanation(victoryType);
+        VictoryText.text = winnerColor + " Wins!\n" + ResultExplanation;
         if (NetworkController.IsOnline && !string.IsNullOrEmpty(NetworkController.LastResultMessage))
             VictoryText.text += "\n" + NetworkController.LastResultMessage;
         
