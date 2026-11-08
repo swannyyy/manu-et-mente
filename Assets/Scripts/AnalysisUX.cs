@@ -221,16 +221,18 @@ public class AnalysisUX : MonoBehaviour
     {
         if (spriteSource == null) return null;
         bool o = color == Pc.Orange; var s = spriteSource;
+        Sprite art; char letter;
         switch (type)
         {
-            case Pc.B: return o ? s.mind_o : s.mind_g;
-            case Pc.H: return o ? s.hand_o : s.hand_g;
-            case Pc.T: return o ? s.tech_o : s.tech_g;
-            case Pc.W: return o ? s.wise_o : s.wise_g;
-            case Pc.S: return o ? s.schol_o : s.schol_g;
-            case Pc.A: return o ? s.app_o : s.app_g;
-            default: return o ? s.skill_o : s.skill_g;
+            case Pc.B: art = o ? s.mind_o : s.mind_g; letter = 'B'; break;
+            case Pc.H: art = o ? s.hand_o : s.hand_g; letter = 'H'; break;
+            case Pc.T: art = o ? s.tech_o : s.tech_g; letter = 'T'; break;
+            case Pc.W: art = o ? s.wise_o : s.wise_g; letter = 'W'; break;
+            case Pc.S: art = o ? s.schol_o : s.schol_g; letter = 'S'; break;
+            case Pc.A: art = o ? s.app_o : s.app_g; letter = 'A'; break;
+            default: art = o ? s.skill_o : s.skill_g; letter = 'P'; break;
         }
+        return PieceStyle.Resolve(letter, o, art); // honours the piece style chosen in Settings
     }
 
     SpriteRenderer PooledRenderer(int i)

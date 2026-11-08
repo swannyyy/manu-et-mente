@@ -134,33 +134,29 @@ public class Chessman : MonoBehaviour
         controller = GameObject.FindGameObjectWithTag("GameController");
         SetCoords();
 
-        // Set sprite based on piece type and player
+        GameVisualTheme.FinishPiece(GetComponent<SpriteRenderer>());
+        ApplySprite();
+    }
+
+    // Sets the sprite for this piece's type and player: the original artwork, or a geometric shape
+    // when that style is chosen in Settings (PieceStyle). Called on spawn and when the style changes.
+    public void ApplySprite()
+    {
         SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-        GameVisualTheme.FinishPiece(spriteRenderer);
+        if (spriteRenderer == null) return;
+        bool orange = player == "orange";
+        Sprite artwork = null;
         switch (pieceType)
         {
-            case "B": // Mind
-                spriteRenderer.sprite = (player == "orange") ? mind_o : mind_g;
-                break;
-            case "H": // Hand
-                spriteRenderer.sprite = (player == "orange") ? hand_o : hand_g;
-                break;
-            case "T": // Technician
-                spriteRenderer.sprite = (player == "orange") ? tech_o : tech_g;
-                break;
-            case "W": // Sage (Wise)
-                spriteRenderer.sprite = (player == "orange") ? wise_o : wise_g;
-                break;
-            case "S": // Scholar
-                spriteRenderer.sprite = (player == "orange") ? schol_o : schol_g;
-                break;
-            case "A": // Apprentice
-                spriteRenderer.sprite = (player == "orange") ? app_o : app_g;
-                break;
-            case "P": // Pawn (skill)
-                spriteRenderer.sprite = (player == "orange") ? skill_o : skill_g;
-                break;
+            case "B": artwork = orange ? mind_o : mind_g; break;   // Mind
+            case "H": artwork = orange ? hand_o : hand_g; break;   // Hand
+            case "T": artwork = orange ? tech_o : tech_g; break;   // Technician
+            case "W": artwork = orange ? wise_o : wise_g; break;   // Sage (Wise)
+            case "S": artwork = orange ? schol_o : schol_g; break; // Scholar
+            case "A": artwork = orange ? app_o : app_g; break;     // Apprentice
+            case "P": artwork = orange ? skill_o : skill_g; break; // Pawn (skill)
         }
+        spriteRenderer.sprite = PieceStyle.Resolve(PieceStyle.Letter(pieceType), orange, artwork);
     }
 
     private bool hasVisualPosition;

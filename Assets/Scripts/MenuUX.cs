@@ -37,7 +37,7 @@ public class MenuUX : MonoBehaviour
         UXUI.Button(content,"Learn by playing",676,()=>Learn());
         UXUI.Button(content,"Statistics & game analysis",758,()=>StatsUX.Show(content));
         UXUI.Button(content,"Rules",840,()=>UXUI.Rules(content,null));
-        UXUI.Button(content,"Sound: "+(AudioListener.volume>0?"On":"Off"),922,ToggleSound);
+        UXUI.Button(content,"Settings",922,()=>SettingsUX.Show(content));
         if(!Application.isMobilePlatform)UXUI.Button(content,"Quit",1004,()=>controller.QuitGame());
         if(OpenStatsOnLoad){OpenStatsOnLoad=false;StatsUX.Show(content);}
     }
@@ -46,12 +46,6 @@ public class MenuUX : MonoBehaviour
         foreach(var im in Resources.FindObjectsOfTypeAll<Image>())
             if(im.gameObject.scene==gameObject.scene && im.name=="MainMenuLogo")return im.sprite;
         return null;
-    }
-    void ToggleSound()
-    {
-        UXSettings.ToggleSound();
-        var b=content.Find("Sound: On")??content.Find("Sound: Off");
-        if(b!=null)b.GetComponentInChildren<Text>().text="Sound: "+(AudioListener.volume>0?"On":"Off");
     }
     void Learn()
     {

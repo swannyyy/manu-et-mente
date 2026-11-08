@@ -31,7 +31,17 @@ raycasts are disabled, and the logo shares the menu panel visibility.
 MenuUX now presents the logo in a responsive screen-space menu with a small
 Manu et Mente caption. GameUX supplies the matching gameplay interface.
 
-Palette refinement: pastel orange/green pieces (the original hues mixed halfway towards white, see BoardFinish.shader), deep teal and warm cream
+Palette refinement: muted terracotta (orange) and forest-green pieces (team colours are properties of the piece material, see BoardFinish.shader and PieceStyle.cs), deep teal and warm cream
 tiles, and stronger gold dividers. The shader decodes its authored sRGB palette
 when using linear rendering, preventing the washed-out appearance. Player-facing
 text calls the P piece Pawn; internal skill_* asset names are retained.
+
+## Settings: piece colours and style
+
+Settings (main menu and in-game menu, `SettingsUX.cs`) lets the player pick the piece style and the colour of each team.
+Choices are saved per device in PlayerPrefs (`PieceStyle`, `PieceOrange`, `PieceGreen`) and apply live.
+
+- Style: **Symbols** (original artwork) or **Geometric** (circle, triangle, square, pentagon, hexagon, star, burst), drawn
+  procedurally by `GeometricGlyphs.cs` at runtime, so no extra art assets are needed.
+- Colours: six presets per team (orange: Terracotta default, Rust, Burnt orange, Amber, Apricot, Vivid orange;
+  green: Forest default, Moss, Sage, Mint, Emerald, Vivid green). Edit `PieceStyle.OrangeColors` / `GreenColors` to change them.

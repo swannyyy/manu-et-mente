@@ -7,6 +7,9 @@ Shader "ManuEtMente/BoardFinish"
         _Piece ("Piece finish", Float) = 0
         _Marker ("Move marker", Float) = 0
         _Capture ("Capture marker", Float) = 0
+        // Team colours (sRGB), set from Settings by PieceStyle.ApplyColors. Defaults: terracotta / forest.
+        _OrangeTeam ("Orange team colour", Vector) = (.80,.42,.29,1)
+        _GreenTeam ("Green team colour", Vector) = (.23,.49,.34,1)
     }
     SubShader
     {
@@ -23,6 +26,7 @@ Shader "ManuEtMente/BoardFinish"
             struct v2f { float4 vertex : SV_POSITION; float2 uv : TEXCOORD0; fixed4 color : COLOR; };
             sampler2D _MainTex;
             float _Piece, _Marker, _Capture;
+            float4 _OrangeTeam, _GreenTeam;
             v2f vert(appdata v) { v2f o; o.vertex = UnityObjectToClipPos(v.vertex); o.uv = v.uv; o.color = v.color; return o; }
             fixed4 frag(v2f i) : SV_Target
             {
@@ -38,10 +42,8 @@ Shader "ManuEtMente/BoardFinish"
                 float3 color;
                 if (_Piece > .5)
                 {
-                    // Pastel team colours: the original orange and green, mixed halfway
-                    // towards white (same hues, less saturation), over a gentle dark outline.
-                    float3 team = source.r > source.g ? float3(1.0,.36,.025) : float3(.045,.70,.32);
-                    team = lerp(team, float3(1,1,1), .5);
+                    // Team colour chosen in Settings, over a gentle dark outline.
+                    float3 team = source.r > source.g ? _OrangeTeam.rgb : _GreenTeam.rgb;
                     color = lerp(float3(.075,.10,.12), team, smoothstep(.025,.24,light));
                     color *= .94 + .10 * i.uv.y;
                 }

@@ -273,6 +273,7 @@ public class GameUX : MonoBehaviour
         UXUI.Button(p,"Resume",240,CloseModal,true);
         UXUI.Button(p,"Sound: "+(AudioListener.volume>0?"On":"Off"),330,()=>{UXSettings.ToggleSound();ShowMenu();});
         UXUI.Button(p,"Rules",420,()=>UXUI.Rules(p,null));
+        UXUI.Button(p,"Settings",510,()=>SettingsUX.Show(p));
         UXUI.Button(p,"Leave game",600,ConfirmLeave);
     }
     void ConfirmLeave()

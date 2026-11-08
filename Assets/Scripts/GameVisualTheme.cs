@@ -20,6 +20,19 @@ public static class GameVisualTheme
     {
         SceneManager.sceneLoaded -= Apply;
         SceneManager.sceneLoaded += Apply;
+        PieceStyle.Changed -= OnPieceStyleChanged;
+        PieceStyle.Changed += OnPieceStyleChanged;
+    }
+
+    // The shared piece material (also used by the Settings preview).
+    public static Material PieceMaterial { get { EnsureMaterials(); return pieceMaterial; } }
+
+    // Settings changed the team colours or the piece style: update the material and every piece on the board.
+    static void OnPieceStyleChanged()
+    {
+        EnsureMaterials();
+        PieceStyle.ApplyColors(pieceMaterial);
+        foreach (var piece in Object.FindObjectsByType<Chessman>(FindObjectsInactive.Exclude)) piece.ApplySprite();
     }
 
     public static void FinishPiece(SpriteRenderer renderer)
@@ -43,6 +56,7 @@ public static class GameVisualTheme
         boardMaterial = new Material(shader) { name = "Ivory and slate board", hideFlags = HideFlags.DontSave };
         pieceMaterial = new Material(shader) { name = "Jade and copper pieces", hideFlags = HideFlags.DontSave };
         pieceMaterial.SetFloat("_Piece", 1f);
+        PieceStyle.ApplyColors(pieceMaterial);
         moveMaterial = new Material(shader) { name = "Legal move ring", hideFlags = HideFlags.DontSave };
         moveMaterial.SetFloat("_Marker", 1f);
         captureMaterial = new Material(moveMaterial) { name = "Capture segmented ring", hideFlags = HideFlags.DontSave };
