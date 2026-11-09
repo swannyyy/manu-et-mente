@@ -86,10 +86,25 @@ public class AnalysisUX : MonoBehaviour
         cts = new CancellationTokenSource();
         double[] weights = AIAgent.LoadWeights();
         GameAnalysis local = ga; CancellationToken token = cts.Token;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        StartCoroutine(AnalyseInFrames(local, weights, token));   // single-threaded browser build
+#else
         Task.Run(() => local.Run(weights, AnalysisDepth, AnalysisMsPerPosition, token));
+#endif
 
         cursor = fromMenu ? 0 : ga.PlyCount;
         Show(cursor);
+    }
+
+    // Browser build: analyse a position or two per frame instead of on a worker thread.
+    System.Collections.IEnumerator AnalyseInFrames(GameAnalysis local, double[] weights, CancellationToken token)
+    {
+        yield return null;
+        while (!token.IsCancellationRequested)
+        {
+            if (local.Step(weights, AnalysisDepth, 150, 20)) yield break;
+            yield return null;
+        }
     }
 
     public void Close()

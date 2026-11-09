@@ -96,14 +96,20 @@ public class PuzzleUX : MonoBehaviour
         SetStatus("All built-in puzzles solved. Generating a new puzzle…");
         prompt.text = "";
         SetButtons(false, false, false);
+        Puzzle p = null;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // The browser build is single-threaded, so new puzzles are not generated; replay the built-in ones.
+        yield return null;
+#else
         if (generating == null)
         {
             double[] w = AIAgent.LoadWeights(); int seed = Random.Range(1, int.MaxValue); CancellationToken token = cts.Token;
             generating = Task.Run(() => new PuzzleGenerator(w, seed) { ScoreDepth = 2, ScoreMsPerMove = 250 }.Generate(30, token));
         }
         while (!generating.IsCompleted) yield return null;
-        Puzzle p = generating.IsFaulted ? null : generating.Result;
+        p = generating.IsFaulted ? null : generating.Result;
         generating = null;
+#endif
         if (p != null) { bank.Add(p); Load(p); }
         else if (bank.Count > 0) Load(bank[Random.Range(0, bank.Count)]); // replay an old one
         else SetStatus("Could not generate a puzzle. Try again.");
