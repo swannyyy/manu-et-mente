@@ -229,6 +229,10 @@ public class NetworkController : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
+        // Opponent walked away from a running game: it counts as their loss. Must run while the
+        // match is still flagged online so the points and the saved game are recorded as online.
+        EnsureGameController();
+        if (gameController != null) gameController.Forfeit(false);
         MatchReady = false;
         StatusMessage = "Opponent left the game.";
         SessionInterrupted = true;
@@ -238,6 +242,12 @@ public class NetworkController : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        // Losing our own connection mid-game is leaving it: the other side is awarded the win.
+        if (IsOnline && MatchReady)
+        {
+            EnsureGameController();
+            if (gameController != null) gameController.Forfeit(true);
+        }
         if (IsOnline || IsMatchmaking) SessionInterrupted = true;
         StatusMessage = "Disconnected: " + cause;
         IsOnline = false;
@@ -310,8 +320,13 @@ public class NetworkController : MonoBehaviourPunCallbacks, IOnEventCallback
                           : delta < 0 ? $"You lost. {delta} (now {PlayerProfile.Points})"
                           : $"Draw (now {PlayerProfile.Points})";
 
-        PhotonNetwork.RaiseEvent(RESULT_EVENT,
-            new object[] { PlayerProfile.Nickname, PlayerProfile.Points }, toOthers, reliable);
+        // (Not when the connection is already gone, e.g. a forfeit caused by our own disconnect.)
+        if (PhotonNetwork.InRoom)
+        {
+            PhotonNetwork.RaiseEvent(RESULT_EVENT,
+                new object[] { PlayerProfile.Nickname, PlayerProfile.Points }, toOthers, reliable);
+            PhotonNetwork.SendAllOutgoingCommands(); // a leaver is about to leave the room: flush now
+        }
     }
 
     // ---------------- Receiving & replaying remote commands ----------------
@@ -327,6 +342,7 @@ public class NetworkController : MonoBehaviourPunCallbacks, IOnEventCallback
             {
                 OpponentNickname = r[0] as string ?? "";
                 OpponentPoints = r[1] is int p ? p : 0;
+                GameHistory.SetLastOnlineOpponent(OpponentNickname);
             }
             return;
         }
