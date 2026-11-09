@@ -1,6 +1,30 @@
 # Manu et Mente
 
-A Unity strategy board game with AI opponents, same-device play, Photon-powered online play, and interactive lessons.
+*Hand and Mind.* A two-player abstract strategy game on a circular, four-ring board, built in Unity. Move a piece, or rotate a pair of rings instead.
+
+Play against a computer opponent with adjustable difficulty, against a friend on the same device, or online. Learn with guided exercises, solve puzzles, and review your games with post-game analysis and stats.
+
+## How to play
+
+Each side has Pawns, Scholars, Sages and two commanders, the **Hand** and the **Mind**. Tap a piece to see its legal moves: mint rings are moves, segmented coral rings are captures. Scholars and Sages can rotate their ring pair instead of moving. After three rotations in a row (by either player) the next player must move a piece; if they cannot, the game is a draw. Diagonal pieces may need an enabler deeper in the board.
+
+Win with any one of these:
+
+- **Hand + Mind** in the centre D ring.
+- **Hand or Mind + 3 Pawns** in D.
+- **Comeback win:** only after losing one commander, your last commander in D plus 4 Pawns in C/c.
+- **Capture both enemy commanders** (Hand and Mind).
+
+Leaving a game against the AI or online counts as a loss.
+
+## Features
+
+- Offline AI opponent with adjustable difficulty. It is a pure C# engine (negamax with alpha-beta, transposition table, quiescence search, iterative deepening) with a linear evaluation tuned by self-play and Texel tuning; difficulty sets search depth, noise and a chance of a random move.
+- Same-device and Photon-powered online play.
+- Guided learning exercises and a set of puzzles.
+- Post-game analysis with a win-probability bar, plus player statistics.
+- Settings: sound, six colour presets per team (terracotta and forest green by default), and a choice of the original symbol artwork or a geometric piece style.
+- Free, with no ads.
 
 ## Open the project
 
@@ -17,6 +41,8 @@ Install Android Build Support (including its SDK, NDK, and OpenJDK) for the edit
 Online play uses Photon PUN. Review the Photon server settings and configure your own Photon application when setting up an independent deployment.
 
 ## Project notes
+
+- `Assets/Scripts/`: game rules, UI, AI engine (`ManuAI`, `AIagent.cs`), analysis, puzzles and the piece style/settings code.
 
 - `UX.md`: interface and gameplay interaction notes.
 - `GRAPHICS.md`: visual implementation notes.
