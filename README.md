@@ -1,4 +1,4 @@
-<iframe frameborder="0" src="https://itch.io/embed/5329925?linkback=true" width="552" height="167"><a href="https://swanny95.itch.io/manu-et-mente">Manu et Mente by Swanny95</a></iframe>
+
 # Manu et Mente
 
 *Hand and Mind.* A two-player abstract strategy game on a circular, four-ring board, built in Unity. Move a piece, or rotate a pair of rings instead.
