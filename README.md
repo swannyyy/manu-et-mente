@@ -3,6 +3,8 @@
 
 *Hand and Mind.* A two-player abstract strategy game on a circular, four-ring board, built in Unity. Move a piece, or rotate a pair of rings instead.
 
+**[Play it in your browser on itch.io](https://swanny95.itch.io/manu-et-mente)**
+
 Play against a computer opponent with adjustable difficulty, against a friend on the same device, or online. Learn with guided exercises, solve puzzles, and review your games with post-game analysis and stats.
 
 ## How to play
