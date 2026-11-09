@@ -160,8 +160,20 @@ public class AIAgent : MonoBehaviour
 
         ConfigureSearcher();
         System.Random rng = new System.Random(Random.Range(int.MinValue, int.MaxValue));
-        Task<SearchResult> task = Task.Run(() => searcher.Search(board));
+        Task<SearchResult> task = null;
+        SearchResult syncResult = null;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // The browser build is single-threaded: a background task would not run properly, so the search
+        // runs here, with a shorter time limit. The page pauses for that moment (a fraction of a second).
+        yield return null;
+        yield return null; // let the "AI is thinking" status draw first
+        searcher.TimeLimitMs = System.Math.Min(searcher.TimeLimitMs, WebTimeLimitMs(difficulty));
+        try { syncResult = searcher.Search(board); }
+        catch (System.Exception ex) { Debug.LogError("AIAgent: search failed: " + ex); }
+#else
+        task = Task.Run(() => searcher.Search(board));
         yield return new WaitUntil(() => task.IsCompleted);
+#endif
 
         // Make the AI feel like it is thinking for at least the configured delay.
         float remaining = wanted - (Time.time - started);
@@ -175,8 +187,12 @@ public class AIAgent : MonoBehaviour
             yield break;
         }
 
-        SearchResult result = task.IsFaulted ? null : task.Result;
-        if (task.IsFaulted) Debug.LogError("AIAgent: search failed: " + task.Exception);
+        SearchResult result = syncResult;
+        if (task != null)
+        {
+            result = task.IsFaulted ? null : task.Result;
+            if (task.IsFaulted) Debug.LogError("AIAgent: search failed: " + task.Exception);
+        }
 
         Move chosen = result != null ? result.Best : Move.None;
 
@@ -201,6 +217,17 @@ public class AIAgent : MonoBehaviour
         }
 
         isThinking = false;
+    }
+
+    // Search time caps for the single-threaded browser build (the search blocks the page while it runs).
+    static long WebTimeLimitMs(DifficultyLevel level)
+    {
+        switch (level)
+        {
+            case DifficultyLevel.Easy: return 300;
+            case DifficultyLevel.Medium: return 800;
+            default: return 1500;
+        }
     }
 
     private void ConfigureSearcher()

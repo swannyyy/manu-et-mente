@@ -126,34 +126,59 @@ namespace ManuAI
             for (int i = 0; i < Positions.Count; i++)
             {
                 if (ct.IsCancellationRequested) return;
-                Board b = Positions[i];
-                PositionEval e = Evals[i];
-                if (b.Winner >= 0)
-                {
-                    e.Score = b.Winner == b.Side ? Searcher.WinScore : -Searcher.WinScore;
-                }
-                else
-                {
-                    var buf = new List<Move>();
-                    b.GenerateMoves(buf);
-                    if (buf.Count == 0) e.Score = 0; // drawn (no piece move after the rotation limit)
-                    else
-                    {
-                        SearchResult r = s.Search(b);
-                        e.Score = r.Score; e.Best = r.Best; e.Depth = r.Depth;
-                        // A single legal move is returned without searching; evaluate it properly.
-                        if (buf.Count == 1)
-                        {
-                            Board c = b.Clone(); Undo u = new Undo(); c.Make(buf[0], ref u);
-                            e.Score = c.Winner >= 0 ? (c.Winner == b.Side ? Searcher.WinScore : -Searcher.WinScore)
-                                                    : -Eval.Evaluate(c, weights);
-                        }
-                    }
-                }
-                e.Done = true;
-                Completed = i + 1;
+                AnalysePosition(i, s, weights);
             }
             Finished = true;
+        }
+
+        // Single-threaded variant (browser build): analyses positions until about frameBudgetMs has passed
+        // (at least one), then returns so the caller can draw a frame. Returns true when all are done.
+        Searcher stepSearcher; double[] stepWeights;
+        public bool Step(double[] weights, int maxDepth, long msPerPosition, long frameBudgetMs)
+        {
+            if (stepSearcher == null)
+            {
+                stepWeights = weights;
+                stepSearcher = new Searcher(weights) { MaxDepth = maxDepth, TimeLimitMs = msPerPosition, QuiescenceDepth = 4, RootNoise = 0 };
+            }
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            do
+            {
+                if (Completed >= Positions.Count) break;
+                AnalysePosition(Completed, stepSearcher, stepWeights);
+            } while (sw.ElapsedMilliseconds < frameBudgetMs);
+            if (Completed >= Positions.Count) Finished = true;
+            return Finished;
+        }
+
+        void AnalysePosition(int i, Searcher s, double[] weights)
+        {
+            Board b = Positions[i];
+            PositionEval e = Evals[i];
+            if (b.Winner >= 0)
+            {
+                e.Score = b.Winner == b.Side ? Searcher.WinScore : -Searcher.WinScore;
+            }
+            else
+            {
+                var buf = new List<Move>();
+                b.GenerateMoves(buf);
+                if (buf.Count == 0) e.Score = 0; // drawn (no piece move after the rotation limit)
+                else
+                {
+                    SearchResult r = s.Search(b);
+                    e.Score = r.Score; e.Best = r.Best; e.Depth = r.Depth;
+                    // A single legal move is returned without searching; evaluate it properly.
+                    if (buf.Count == 1)
+                    {
+                        Board c = b.Clone(); Undo u = new Undo(); c.Make(buf[0], ref u);
+                        e.Score = c.Winner >= 0 ? (c.Winner == b.Side ? Searcher.WinScore : -Searcher.WinScore)
+                                                : -Eval.Evaluate(c, weights);
+                    }
+                }
+            }
+            e.Done = true;
+            Completed = i + 1;
         }
 
         // Win probability (0..1) for the side to move, from an engine score.
